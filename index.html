@@ -727,7 +727,7 @@ async function loadFromCloud() {
     setSyncStatus('loading', 'syncing...');
     const r = await fetch(JSONBIN_URL_VAR + '/latest', { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
     const d = await r.json();
-    if (d.record && d.record.logs) { logs = d.record.logs; }
+    if (d.record && d.record.logs !== undefined) { logs = d.record.logs; }
     setSyncStatus('ok', 'synced');
     renderAll();
   } catch(e) { setSyncStatus('err', 'sync failed'); }
@@ -992,6 +992,7 @@ function toggleBlock(e, bookId, blockId) {
   const key = blockKey(bookId, blockId);
   if (logs[key]) {
     delete logs[key];
+    localStorage.setItem('bookd_logs', JSON.stringify(logs));
     renderAll();
     saveToCloud();
   } else {
@@ -1049,6 +1050,7 @@ function saveLog() {
     rating: modalRating,
     note: note
   };
+  localStorage.setItem('bookd_logs', JSON.stringify(logs));
   closeModal();
   renderAll();
   saveToCloud();
@@ -1085,8 +1087,16 @@ function loadSettings() {
   if (bin) { JSONBIN_BIN_ID = bin; document.getElementById('setting-binid').value = bin; JSONBIN_URL_VAR = `https://api.jsonbin.io/v3/b/${bin}`; }
 }
 
+
+function loadLocalLogs() {
+  const data = localStorage.getItem('bookd_logs');
+  if (data) {
+    try { logs = JSON.parse(data); } catch(e) {}
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", function() { loadSettings(); loadFromCloud(); });
+document.addEventListener("DOMContentLoaded", function() { loadSettings(); loadLocalLogs(); loadFromCloud(); });
 </script>
 </body>
 </html>
