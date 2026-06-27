@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bookd</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #e8e4dc;
+    --text2: #888;
+    --text3: #555;
+    --accent: #a13d3d;
+    --accent-dim: #a13d3d22;
+    --green: #6db87a;
+    --green-dim: #6db87a18;
+    --red: #e06c6c;
+    --radius: 6px;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+
+  html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+  body { min-height: 100vh; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
+  
+  /* Sidebar */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: var(--serif);
+    font-size: 30px;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; font-family: var(--mono); }
+  .nav { padding: 12px 0; flex: 1; }
+  .nav-item {
+    display: block;
+    padding: 7px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    transition: color 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); }
+  .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  .nav-section-label {
+    padding: 16px 20px 4px;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+  }
+  .sidebar-stats {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .stat-label { font-size: 11px; color: var(--text3); }
+  .stat-val { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+
+  /* Main */
+  .main { padding: 0; overflow-x: hidden; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-header {
+    padding: 32px 40px 24px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .page-title { font-family: var(--serif); font-size: 28px; font-weight: 400; color: var(--text); letter-spacing: -0.02em; }
+  .page-title span { color: var(--accent); }
+  .page-sub { font-size: 12px; color: var(--text3); margin-top: 4px; font-family: var(--mono); }
+
+  /* Books grid */
+  .books-container { padding: 24px 40px 60px; }
+  .subject-group { margin-bottom: 48px; }
+  .subject-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    font-family: var(--mono);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .books-list { display: flex; flex-direction: column; gap: 2px; }
+
+  /* Book row */
+  .book-row {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .book-row:hover { border-color: var(--border2); }
+  .book-row.completed { border-color: #6db87a30; }
+  .book-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    background: var(--surface);
+    gap: 16px;
+  }
+  .book-header:hover { background: var(--surface2); }
+  .book-meta { display: flex; flex-direction: column; gap: 2px; }
+  .book-title { font-family: var(--serif); font-size: 16px; color: var(--text); font-weight: 400; letter-spacing: -0.01em; }
+  .book-author { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .book-right { display: flex; align-items: center; gap: 10px; }
+  .progress-track {
+    width: 80px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .progress-fill.done { background: var(--green); }
+  .progress-text { font-size: 11px; color: var(--text3); font-family: var(--mono); min-width: 32px; text-align: right; }
+  .expand-icon { color: var(--text3); font-size: 16px; transition: transform 0.2s; flex-shrink: 0; }
+  .book-row.open .expand-icon { transform: rotate(180deg); }
+
+  /* Blocks */
+  .blocks-panel { display: none; background: var(--bg); border-top: 1px solid var(--border); }
+  .book-row.open .blocks-panel { display: block; }
+  .blocks-inner { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+  .block-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid transparent;
+  }
+  .block-item.done { background: var(--green-dim); border-color: #6db87a22; }
+  .block-label { font-size: 13px; color: var(--text2); }
+  .block-label strong { color: var(--text); font-weight: 500; font-family: var(--mono); font-size: 12px; }
+  .block-item.done .block-label { color: var(--text3); }
+  .block-date { font-size: 11px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
+  .block-actions { display: flex; gap: 6px; align-items: center; }
+  .btn-done {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 3px 10px;
+    border-radius: 3px;
+    border: 1px solid var(--border2);
+    background: none;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-done:hover { border-color: var(--green); color: var(--green); }
+  .block-item.done .btn-done { border-color: #6db87a44; color: var(--text3); }
+  .block-item.done .btn-done:hover { border-color: var(--red); color: var(--red); }
+  .btn-note {
+    font-size: 11px;
+    font-family: var(--mono);
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-note:hover { color: var(--accent); border-color: var(--accent); }
+  .btn-note.has-note { color: var(--accent); border-color: #c8b47a44; }
+
+  /* Rating stars */
+  .stars { display: flex; gap: 2px; }
+  .star { font-size: 13px; cursor: pointer; color: var(--border2); transition: color 0.1s; line-height: 1; }
+  .star.lit { color: var(--accent); }
+  .star:hover { color: var(--accent); }
+
+  /* Log modal */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000000bb;
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 24px;
+    width: 380px;
+    max-width: 90vw;
+  }
+  .modal-title { font-family: var(--serif); font-size: 18px; margin-bottom: 4px; }
+  .modal-sub { font-size: 12px; color: var(--text3); margin-bottom: 20px; font-family: var(--mono); }
+  .modal label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); }
+  .modal textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    padding: 10px;
+    resize: vertical;
+    min-height: 80px;
+    margin-bottom: 16px;
+    outline: none;
+  }
+  .modal textarea:focus { border-color: var(--accent); }
+  .modal-stars { margin-bottom: 20px; }
+  .modal-stars .stars { gap: 4px; }
+  .modal-stars .star { font-size: 20px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .btn-cancel {
+    padding: 7px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: none;
+    color: var(--text2);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--sans);
+  }
+  .btn-save {
+    padding: 7px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-weight: 500;
+  }
+  .btn-save:hover { background: var(--accent); color: #0e0e0e; }
+
+  /* Diary page */
+  .diary-container { padding: 24px 40px 60px; }
+  .diary-empty { color: var(--text3); font-family: var(--mono); font-size: 13px; padding: 40px 0; }
+  .diary-entry {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .diary-date { font-family: var(--mono); font-size: 11px; color: var(--text3); padding-top: 2px; line-height: 1.8; }
+  .diary-date .day { font-size: 22px; color: var(--text2); font-family: var(--serif); display: block; line-height: 1; margin-bottom: 2px; }
+  .diary-content {}
+  .diary-book { font-family: var(--serif); font-size: 17px; color: var(--text); }
+  .diary-block { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+  .diary-stars { margin-top: 6px; }
+  .diary-stars .star { font-size: 12px; cursor: default; }
+  .diary-note { font-size: 13px; color: var(--text2); margin-top: 8px; font-style: italic; border-left: 2px solid var(--border2); padding-left: 10px; }
+
+  /* Stats page */
+  .stats-container { padding: 24px 40px 60px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 40px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .stat-card-val { font-family: var(--serif); font-size: 36px; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+  .stat-card-label { font-size: 11px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stats-section-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); font-family: var(--mono); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .subject-bar { display: grid; grid-template-columns: 120px 1fr 40px; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .subject-bar-label { font-size: 12px; color: var(--text2); }
+  .subject-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .subject-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; }
+  .subject-bar-pct { font-size: 11px; color: var(--text3); font-family: var(--mono); text-align: right; }
+
+
+
+  /* Settings */
+  .settings-container { padding: 24px 40px 60px; max-width: 480px; }
+  .settings-group { margin-bottom: 32px; }
+  .settings-group-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); font-family: var(--mono); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .settings-field { margin-bottom: 14px; }
+  .settings-field label { display: block; font-size: 11px; color: var(--text3); font-family: var(--mono); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .settings-field input { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 9px 12px; outline: none; }
+  .settings-field input:focus { border-color: var(--accent); }
+  .btn-settings-save { padding: 8px 20px; border-radius: 4px; border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); font-size: 13px; cursor: pointer; font-family: var(--sans); font-weight: 500; }
+  .btn-settings-save:hover { background: var(--accent); color: #0e0e0e; }
+  .settings-hint { font-size: 12px; color: var(--text3); font-family: var(--mono); margin-top: 8px; line-height: 1.7; }
+
+  /* Block editing */
+  .edit-block-row { display: flex; gap: 6px; align-items: center; margin-bottom: 4px; }
+  .edit-block-row input { flex: 1; background: var(--bg); border: 1px solid var(--border2); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 5px 8px; outline: none; min-width: 0; }
+  .edit-block-row input:focus { border-color: var(--accent); }
+  .edit-block-row input.title-input { font-family: var(--sans); font-size: 12px; }
+  .btn-rm-block { background: none; border: 1px solid var(--border); border-radius: 3px; color: var(--text3); font-size: 13px; cursor: pointer; padding: 2px 7px; flex-shrink: 0; line-height: 1.4; }
+  .btn-rm-block:hover { border-color: var(--red); color: var(--red); }
+  .btn-add-block { background: none; border: 1px dashed var(--border2); border-radius: 4px; color: var(--text3); font-size: 12px; cursor: pointer; padding: 6px 12px; width: 100%; margin-top: 6px; font-family: var(--mono); text-align: left; }
+  .btn-add-block:hover { border-color: var(--accent); color: var(--accent); }
+  .edit-mode-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-edit-save { padding: 5px 14px; border-radius: 4px; border: 1px solid var(--accent); background: var(--accent-dim); color: var(--accent); font-size: 12px; cursor: pointer; font-family: var(--mono); }
+  .btn-edit-save:hover { background: var(--accent); color: #0e0e0e; }
+  .btn-edit-cancel { padding: 5px 14px; border-radius: 4px; border: 1px solid var(--border2); background: none; color: var(--text3); font-size: 12px; cursor: pointer; font-family: var(--mono); }
+  .btn-edit-toggle { background: none; border: none; color: var(--text3); font-size: 11px; font-family: var(--mono); cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+  .btn-edit-toggle:hover { color: var(--accent); }
+  .blocks-inner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 0 6px; border-bottom: 1px solid var(--border); }
+  .blocks-inner-header span { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--mono); }
+
+  /* Sync bar */
+  .sync-bar {
+    position: fixed;
+    bottom: 16px;
+    right: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text3);
+  }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); }
+  .sync-dot.ok { background: var(--green); }
+  .sync-dot.err { background: var(--red); }
+  .sync-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  @media (max-width: 700px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .books-container, .diary-container, .stats-container, .skipped-container { padding: 16px; }
+    .page-header { padding: 20px 16px 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">Bookd</span>
+      <span class="logo-sub">reading log</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-section-label">Browse</div>
+      <button class="nav-item active" onclick="showPage('books')">All books</button>
+      <button class="nav-item" onclick="showPage('diary')">Diary</button>
+      <button class="nav-item" onclick="showPage('stats')">Stats</button>
+      <button class="nav-item" onclick="showPage('settings')">Settings</button>
+    </nav>
+    <div class="sidebar-stats">
+      <div class="stat-row"><span class="stat-label">Blocks done</span><span class="stat-val" id="sb-blocks">0</span></div>
+      <div class="stat-row"><span class="stat-label">Books started</span><span class="stat-val" id="sb-started">0</span></div>
+      <div class="stat-row"><span class="stat-label">Books finished</span><span class="stat-val" id="sb-finished">0</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <!-- Books page -->
+    <div class="page active" id="page-books">
+      <div class="page-header">
+        <div class="page-title">All <span>books</span></div>
+        <div class="page-sub" id="books-count">— books</div>
+      </div>
+      <div class="books-container" id="books-container"></div>
+    </div>
+
+    <!-- Diary page -->
+    <div class="page" id="page-diary">
+      <div class="page-header">
+        <div class="page-title">Diary</div>
+        <div class="page-sub">Every block you've finished, in order.</div>
+      </div>
+      <div class="diary-container" id="diary-container"></div>
+    </div>
+
+    <!-- Stats page -->
+    <div class="page" id="page-stats">
+      <div class="page-header">
+        <div class="page-title">Stats</div>
+      </div>
+      <div class="stats-container" id="stats-container"></div>
+    </div>
+
+
+    <!-- Settings page -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Sync & API configuration</div>
+      </div>
+      <div class="settings-container">
+        <div class="settings-group">
+          <div class="settings-group-label">JSONBin sync</div>
+          <div class="settings-field">
+            <label>API Key (X-Master-Key)</label>
+            <input type="password" id="setting-apikey" placeholder="$2b$10$..." />
+          </div>
+          <div class="settings-field">
+            <label>Bin ID</label>
+            <input type="text" id="setting-binid" placeholder="64f3a..." />
+          </div>
+          <button class="btn-settings-save" onclick="saveSettings()">Save & sync</button>
+          <div class="settings-hint">
+            1. Create a free account at jsonbin.io<br>
+            2. Go to API Keys → create a key<br>
+            3. Create a new bin with content: {"logs":{}}<br>
+            4. Paste both values above — your data syncs across devices instantly
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Log modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Log block</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-stars">
+      <label>Rating</label>
+      <div class="stars" id="modal-stars">
+        <span class="star" data-v="1">★</span>
+        <span class="star" data-v="2">★</span>
+        <span class="star" data-v="3">★</span>
+        <span class="star" data-v="4">★</span>
+        <span class="star" data-v="5">★</span>
+      </div>
+    </div>
+    <label>Note <span style="color:var(--text3);font-size:10px;text-transform:none;letter-spacing:0">(optional)</span></label>
+    <textarea id="modal-note" placeholder="anything you want to remember about this block..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveLog()">Log it</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync bar -->
+<div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><span id="sync-label">not synced</span></div>
+
+<script>
+let JSONBIN_API_KEY = 'YOUR_API_KEY';
+let JSONBIN_BIN_ID = 'YOUR_BIN_ID';
+let JSONBIN_URL_VAR = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const BOOKS = [
+  // ── CALCULUS ──
+  { id:'spivak-calc', title:'Calculus', author:'Michael Spivak', subject:'Calculus', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–7',title:'Foundations & limits'},{id:'b2',label:'Ch. 8–14',title:'Derivatives & applications'},{id:'b3',label:'Ch. 15–20',title:'Integration'},{id:'b4',label:'Ch. 21–28',title:'Series & epilogue'}] },
+  { id:'apostol-calc1', title:'Calculus Vol. I', author:'Tom Apostol', subject:'Calculus', level:1,
+    blocks:[{id:'b1',label:'Ch. 2–4',title:'Integration from scratch'},{id:'b2',label:'Ch. 5–6',title:'Differentiation & FTC'},{id:'b3',label:'Ch. 7–8',title:'Transcendental functions'},{id:'b4',label:'Ch. 15–16',title:'Series (selective)'}] },
+  { id:'apostol-calc2', title:'Calculus Vol. II', author:'Tom Apostol', subject:'Calculus', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Linear algebra interlude'},{id:'b2',label:'Ch. 5–8',title:'Multivariable differential calculus'},{id:'b3',label:'Ch. 9–12',title:'Multiple integrals'},{id:'b4',label:'Ch. 13–16',title:'Vector analysis'}] },
+
+  // ── ANALYSIS ──
+  { id:'tao-analysis1', title:'Analysis I', author:'Terence Tao', subject:'Analysis', level:2,
+    blocks:[{id:'b1',label:'Ch. 2–5',title:'Foundations & naturals to reals'},{id:'b2',label:'Ch. 6–8',title:'Limits & continuous functions'},{id:'b3',label:'Ch. 9–11',title:'Differentiation & Riemann integral'}] },
+  { id:'tao-analysis2', title:'Analysis II', author:'Terence Tao', subject:'Analysis', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Metric spaces'},{id:'b2',label:'Ch. 4–6',title:'Uniform convergence & series'},{id:'b3',label:'Ch. 7–9',title:'Multivariable & Lebesgue measure'}] },
+  { id:'rudin-functional', title:'Functional Analysis', author:'Walter Rudin', subject:'Analysis', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Topological vector spaces'},{id:'b2',label:'Ch. 4–6',title:'Duality & distributions'},{id:'b3',label:'Ch. 7–9',title:'Fourier transforms'},{id:'b4',label:'Ch. 10–12',title:'Banach algebras & spectral theory'}] },
+  { id:'debarra-measure', title:'Measure Theory & Integration', author:'G. De Barra', subject:'Analysis', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Measure spaces'},{id:'b2',label:'Ch. 4–6',title:'Lebesgue integration'},{id:'b3',label:'Ch. 7–9',title:'Convergence & Lp spaces'}] },
+  { id:'stein-complex', title:'Complex Analysis', author:'E.M. Stein & R. Shakarchi', subject:'Analysis', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Holomorphic functions & Cauchy'},{id:'b2',label:'Ch. 4–6',title:'Meromorphic functions & residues'},{id:'b3',label:'Ch. 7–8',title:'Conformal maps & special functions'}] },
+
+  // ── LINEAR ALGEBRA ──
+  { id:'axler-la', title:'Linear Algebra Done Right', author:'Sheldon Axler', subject:'Linear Algebra', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Vector spaces & subspaces'},{id:'b2',label:'Ch. 4–6',title:'Eigenvalues & invariant subspaces'},{id:'b3',label:'Ch. 7–9',title:'Inner product spaces & operators'}] },
+  { id:'shilov-la', title:'Linear Algebra', author:'G. Shilov', subject:'Linear Algebra', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Determinants & linear spaces'},{id:'b2',label:'Ch. 4–6',title:'Linear operators & matrices'},{id:'b3',label:'Ch. 7–9',title:'Quadratic forms & canonical forms'}] },
+  { id:'kihlman-la', title:'Linear Algebra', author:'A. Kihlman & R. Kunze', subject:'Linear Algebra', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Vector spaces & bases'},{id:'b2',label:'Ch. 4–6',title:'Linear maps & matrices'},{id:'b3',label:'Ch. 7–9',title:'Spectral theory & canonical forms'}] },
+  { id:'roman-adv-la', title:'Advanced Linear Algebra', author:'S. Roman', subject:'Linear Algebra', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Modules & tensor products'},{id:'b2',label:'Ch. 5–8',title:'Structure theorems'},{id:'b3',label:'Ch. 9–12',title:'Normed & inner product spaces'}] },
+
+  // ── ABSTRACT ALGEBRA ──
+  { id:'dummit-algebra', title:'Abstract Algebra', author:'D.S. Dummit & R.M. Foote', subject:'Abstract Algebra', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Group theory foundations'},{id:'b2',label:'Ch. 4–5',title:'Group actions & products'},{id:'b3',label:'Ch. 9–10',title:'Polynomial & quotient rings'},{id:'b4',label:'Ch. 18',title:'Representation theory'}] },
+  { id:'dixon-groups', title:'Problems in Group Theory', author:'J. Dixon', subject:'Abstract Algebra', level:2,
+    blocks:[{id:'b1',label:'Part 1',title:'Subgroups & permutations'},{id:'b2',label:'Part 2',title:'Homomorphisms & series'},{id:'b3',label:'Part 3',title:'Representations & extensions'}] },
+  { id:'lang-algebra', title:'Algebra', author:'Serge Lang', subject:'Abstract Algebra', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Groups & rings'},{id:'b2',label:'Ch. 5–8',title:'Modules & fields'},{id:'b3',label:'Ch. 9–12',title:'Galois theory'},{id:'b4',label:'Ch. 13–16',title:'Homological algebra'}] },
+  { id:'stewart-galois', title:'Galois Theory', author:'I. Stewart', subject:'Abstract Algebra', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Field extensions'},{id:'b2',label:'Ch. 5–8',title:'Splitting fields & normality'},{id:'b3',label:'Ch. 9–12',title:'Galois correspondence'}] },
+
+  // ── TOPOLOGY & GEOMETRY ──
+  { id:'munkres-topology', title:'Topology', author:'J.R. Munkres', subject:'Topology & Geometry', level:2,
+    blocks:[{id:'b1',label:'Ch. 2–3',title:'Topological spaces & continuity'},{id:'b2',label:'Ch. 4',title:'Connectedness & compactness'},{id:'b3',label:'Ch. 5',title:'Separation axioms'},{id:'b4',label:'Ch. 7',title:'Complete metric & function spaces'},{id:'b5',label:'Ch. 9',title:'Fundamental group'},{id:'b6',label:'Ch. 11',title:'Seifert–van Kampen theorem'}] },
+  { id:'hatcher-algtop', title:'Algebraic Topology', author:'A. Hatcher', subject:'Topology & Geometry', level:3,
+    blocks:[{id:'b1',label:'Ch. 0–1',title:'CW complexes & fundamental group'},{id:'b2',label:'Ch. 2',title:'Homology'},{id:'b3',label:'Ch. 3',title:'Cohomology'},{id:'b4',label:'Ch. 4',title:'Homotopy theory'}] },
+  { id:'lee-manifolds', title:'Introduction to Smooth Manifolds', author:'J.M. Lee', subject:'Topology & Geometry', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Smooth manifolds & maps'},{id:'b2',label:'Ch. 5–8',title:'Tangent bundle & submanifolds'},{id:'b3',label:'Ch. 9–12',title:'Differential forms & integration'},{id:'b4',label:'Ch. 13–16',title:'De Rham cohomology & Lie groups'}] },
+  { id:'guggenheimer-dg', title:'Differential Geometry', author:'H.W. Guggenheimer', subject:'Topology & Geometry', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Curves in space'},{id:'b2',label:'Ch. 5–8',title:'Surfaces & curvature'},{id:'b3',label:'Ch. 9–12',title:'Riemannian geometry'}] },
+  { id:'spivak-manifolds', title:'Calculus on Manifolds', author:'Michael Spivak', subject:'Topology & Geometry', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Euclidean space & differentiation'},{id:'b2',label:'Ch. 3–4',title:'Integration on chains'},{id:'b3',label:'Ch. 5',title:'Integration on manifolds'}] },
+  { id:'moise-geometry', title:'Elementary Geometry from Advanced Standpoint', author:'Edwin E. Moise', subject:'Topology & Geometry', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–6',title:'Foundations & Euclidean geometry'},{id:'b2',label:'Ch. 7–12',title:'Geometric transformations'},{id:'b3',label:'Ch. 13–18',title:'Non-Euclidean geometry'}] },
+  { id:'cederberg-geometry', title:'Course in Modern Geometries', author:'J.N. Cederberg', subject:'Topology & Geometry', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Axiomatic & affine geometry'},{id:'b2',label:'Ch. 3–4',title:'Projective geometry'},{id:'b3',label:'Ch. 5–6',title:'Non-Euclidean & finite geometries'}] },
+
+  // ── DIFFERENTIAL EQUATIONS ──
+  { id:'coddington-ode', title:'Theory of Ordinary Differential Equations', author:'E.A. Coddington', subject:'Differential Equations', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Existence & uniqueness'},{id:'b2',label:'Ch. 4–6',title:'Linear systems'},{id:'b3',label:'Ch. 7–9',title:'Stability & boundary value problems'}] },
+  { id:'hirsch-ode', title:'Differential Equations, Dynamical Systems & Chaos', author:'M.W. Hirsch & S. Smale', subject:'Differential Equations', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Linear systems & phase portraits'},{id:'b2',label:'Ch. 5–8',title:'Nonlinear systems & stability'},{id:'b3',label:'Ch. 9–12',title:'Global behaviour & bifurcations'},{id:'b4',label:'Ch. 13–16',title:'Chaos & strange attractors'}] },
+  { id:'rogers-pde', title:'An Introduction to Partial Differential Equations', author:'Renardy & Rogers', subject:'Differential Equations', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Characteristics & classification'},{id:'b2',label:'Ch. 4–6',title:'Elliptic equations'},{id:'b3',label:'Ch. 7–9',title:'Parabolic & hyperbolic equations'},{id:'b4',label:'Ch. 10–12',title:'Sobolev spaces & weak solutions'}] },
+  { id:'wiggins-nonlinear', title:'Introduction to Applied Nonlinear Dynamical Systems & Chaos', author:'Stephen Wiggins', subject:'Differential Equations', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Equilibria & stability'},{id:'b2',label:'Ch. 4–6',title:'Invariant manifolds & bifurcations'},{id:'b3',label:'Ch. 7–9',title:'Chaos & Melnikov theory'}] },
+
+  // ── PROBABILITY & STATISTICS ──
+  { id:'feller-prob', title:'Probability Theory & Its Applications Vol. I', author:'William Feller', subject:'Probability & Statistics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Combinatorics & discrete distributions'},{id:'b2',label:'Ch. 5–8',title:'Random variables & laws of large numbers'},{id:'b3',label:'Ch. 9–12',title:'Generating functions & renewal theory'},{id:'b4',label:'Ch. 13–16',title:'Random walks'}] },
+  { id:'billingsley-prob', title:'Probability & Measure', author:'Patrick Billingsley', subject:'Probability & Statistics', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–5',title:'Measure & probability spaces'},{id:'b2',label:'Ch. 6–10',title:'Expected value & independence'},{id:'b3',label:'Ch. 11–15',title:'Convergence of distributions'},{id:'b4',label:'Ch. 16–20',title:'Stochastic processes'}] },
+  { id:'casella-inference', title:'Statistical Inference', author:'G. Casella & R.L. Berger', subject:'Probability & Statistics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Probability theory'},{id:'b2',label:'Ch. 4–6',title:'Distributions & transformations'},{id:'b3',label:'Ch. 7–9',title:'Point & interval estimation'},{id:'b4',label:'Ch. 10–12',title:'Hypothesis testing'}] },
+
+  // ── NUMBER THEORY ──
+  { id:'rosen-numtheory', title:'Elementary Number Theory', author:'Kenneth H. Rosen', subject:'Number Theory', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Divisibility & primes'},{id:'b2',label:'Ch. 4–6',title:'Congruences & applications'},{id:'b3',label:'Ch. 7–9',title:'Cryptography & Diophantine equations'}] },
+  { id:'ireland-numtheory', title:'A Classical Introduction to Modern Number Theory', author:'K. Ireland & M. Rosen', subject:'Number Theory', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Unique factorization & Gaussian integers'},{id:'b2',label:'Ch. 4',title:'Structure of ℤ/pℤ'},{id:'b3',label:'Ch. 8',title:'Gauss sums'}] },
+  { id:'marcus-numfields', title:'Number Fields', author:'D.A. Marcus', subject:'Number Theory', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Rings of integers'},{id:'b2',label:'Ch. 3–4',title:'Ideal factorization'},{id:'b3',label:'Ch. 5–6',title:'Class groups & units'}] },
+
+  // ── COMBINATORICS & GRAPH THEORY ──
+  { id:'cameron-combinatorics', title:'Combinatorics', author:'Peter J. Cameron', subject:'Combinatorics & Graph Theory', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Counting & generating functions'},{id:'b2',label:'Ch. 5–8',title:'Designs & Latin squares'},{id:'b3',label:'Ch. 9–12',title:'Codes & probabilistic methods'}] },
+  { id:'diestel-graph', title:'Graph Theory', author:'Reinhard Diestel', subject:'Combinatorics & Graph Theory', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Basics, trees & connectivity'},{id:'b2',label:'Ch. 4–6',title:'Planar graphs & colouring'},{id:'b3',label:'Ch. 7–9',title:'Flows & matchings'},{id:'b4',label:'Ch. 10–12',title:'Minors & infinite graphs'}] },
+  { id:'bollobas-graph', title:'Modern Graph Theory', author:'Bollobas', subject:'Combinatorics & Graph Theory', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Foundations & extremal theory'},{id:'b2',label:'Ch. 4–6',title:'Random graphs'},{id:'b3',label:'Ch. 7–9',title:'Algebraic & topological methods'}] },
+
+  // ── ALGORITHMS & CRYPTOGRAPHY ──
+  { id:'cormen-algorithms', title:'Introduction to Algorithms', author:'Cormen, Leiserson et al.', subject:'Algorithms & Cryptography', level:2,
+    blocks:[{id:'b1',label:'Part I–II',title:'Foundations & sorting'},{id:'b2',label:'Part III–IV',title:'Data structures & advanced design'},{id:'b3',label:'Part V–VI',title:'Graph algorithms & selected topics'},{id:'b4',label:'Part VII–VIII',title:'NP & approximation'}] },
+  { id:'hoffstein-crypto', title:'An Introduction to Mathematical Cryptography', author:'Hoffstein, Pipher et al.', subject:'Algorithms & Cryptography', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Discrete logs & diffie-hellman'},{id:'b2',label:'Ch. 3–4',title:'Elliptic curves'},{id:'b3',label:'Ch. 5–6',title:'Lattices & digital signatures'}] },
+
+  // ── CLASSICAL MECHANICS ──
+  { id:'kleppner-mech', title:'An Introduction to Mechanics', author:'Kleppner & Kolenkow', subject:'Classical Mechanics', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Vectors, motion & Newtons laws'},{id:'b2',label:'Ch. 5–8',title:'Energy, momentum & rotation'},{id:'b3',label:'Ch. 9–12',title:'Angular momentum & central forces'},{id:'b4',label:'Ch. 13–16',title:'Oscillations & non-inertial frames'}] },
+  { id:'landau-mech', title:'Mechanics', author:'Landau & Lifshitz', subject:'Classical Mechanics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Lagrangian mechanics'},{id:'b2',label:'Ch. 4–6',title:'Collisions, oscillations & rigid bodies'},{id:'b3',label:'Ch. 7',title:'Hamiltonian mechanics'}] },
+  { id:'goldstein-mech', title:'Classical Mechanics', author:'H. Goldstein', subject:'Classical Mechanics', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Lagrangian & variational principles'},{id:'b2',label:'Ch. 5–7',title:'Rigid body & oscillations'},{id:'b3',label:'Ch. 8–10',title:'Hamiltonian mechanics & canonical transformations'},{id:'b4',label:'Ch. 11–13',title:'Perturbation theory & continuous media'}] },
+
+  // ── ELECTROMAGNETISM ──
+  { id:'purcell-em', title:'Electricity & Magnetism', author:'E.M. Purcell', subject:'Electromagnetism', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Electrostatics'},{id:'b2',label:'Ch. 4–6',title:'Currents & magnetic fields'},{id:'b3',label:'Ch. 7–9',title:'Induction & Maxwells equations'},{id:'b4',label:'Ch. 10–11',title:'Electric & magnetic materials'}] },
+  { id:'jackson-em', title:'Classical Electrodynamics', author:'John David Jackson', subject:'Electromagnetism', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Electrostatics'},{id:'b2',label:'Ch. 4–6',title:'Magnetostatics & boundary problems'},{id:'b3',label:'Ch. 7–9',title:'Electromagnetic waves'},{id:'b4',label:'Ch. 10–12',title:'Radiation & multipole fields'},{id:'b5',label:'Ch. 13–16',title:'Relativistic electrodynamics'}] },
+  { id:'landau-fields', title:'Classical Theory of Fields', author:'Landau & Lifshitz', subject:'Electromagnetism', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Relativity & particle mechanics'},{id:'b2',label:'Ch. 4–6',title:'Electromagnetic field equations'},{id:'b3',label:'Ch. 7–9',title:'Radiation & scattering'},{id:'b4',label:'Ch. 10–12',title:'Gravitational field equations'}] },
+  { id:'landau-ecm', title:'Electrodynamics of Continuous Media', author:'Landau & Lifshitz', subject:'Electromagnetism', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Electrostatics of dielectrics'},{id:'b2',label:'Ch. 5–8',title:'Magnetics & superconductivity'},{id:'b3',label:'Ch. 9–12',title:'Electromagnetic waves in media'}] },
+
+  // ── WAVES & OPTICS ──
+  { id:'crawford-waves', title:'Waves', author:'F.S. Crawford', subject:'Waves & Optics', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Free oscillations'},{id:'b2',label:'Ch. 4–6',title:'Coupled oscillations & travelling waves'},{id:'b3',label:'Ch. 7–9',title:'Modulations, interference & diffraction'}] },
+  { id:'kenyon-optics', title:'The Light Fantastic', author:'Ian Kenyon', subject:'Waves & Optics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Classical optics & interference'},{id:'b2',label:'Ch. 5–8',title:'Diffraction & coherence'},{id:'b3',label:'Ch. 9–12',title:'Quantum optics & lasers'}] },
+  { id:'born-optics', title:'Principles of Optics', author:'Born & Wolf', subject:'Waves & Optics', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Electromagnetic foundations'},{id:'b2',label:'Ch. 4–6',title:'Geometrical optics & aberrations'},{id:'b3',label:'Ch. 7–9',title:'Interference & diffraction'},{id:'b4',label:'Ch. 10–13',title:'Coherence & polarisation'}] },
+
+  // ── QUANTUM MECHANICS ──
+  { id:'wichman-qp', title:'Quantum Physics', author:'E.H. Wichman', subject:'Quantum Mechanics', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Wave-particle duality & Schrödinger equation'},{id:'b2',label:'Ch. 5–8',title:'Bound states & quantum numbers'},{id:'b3',label:'Ch. 9–12',title:'Perturbation theory & atomic structure'}] },
+  { id:'sakurai-qm', title:'Modern Quantum Mechanics', author:'J.J. Sakurai', subject:'Quantum Mechanics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Fundamental concepts & quantum dynamics'},{id:'b2',label:'Ch. 3–4',title:'Angular momentum & symmetry'},{id:'b3',label:'Ch. 5–6',title:'Perturbation theory'},{id:'b4',label:'Ch. 7',title:'Scattering theory'}] },
+  { id:'ballentine-qm', title:'Quantum Mechanics: A Modern Development', author:'L. Ballentine', subject:'Quantum Mechanics', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'State, observables & dynamics'},{id:'b2',label:'Ch. 5–8',title:'Symmetries & conservation laws'},{id:'b3',label:'Ch. 9–12',title:'Approximation methods'},{id:'b4',label:'Ch. 13–16',title:'Many-body systems & measurement'}] },
+
+  // ── STATISTICAL MECHANICS ──
+  { id:'kardar-stat', title:'Statistical Physics of Particles', author:'M. Kardar', subject:'Statistical Mechanics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Thermodynamics & kinetic theory'},{id:'b2',label:'Ch. 4–6',title:'Classical & quantum statistical mechanics'},{id:'b3',label:'Ch. 7–9',title:'Interacting systems & phase transitions'}] },
+  { id:'yeomans-phase', title:'Statistical Mechanics of Phase Transitions', author:'J. Yeomans', subject:'Statistical Mechanics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Phase transitions & mean field theory'},{id:'b2',label:'Ch. 4–6',title:'Scaling & renormalisation group'},{id:'b3',label:'Ch. 7–8',title:'Series expansions & Monte Carlo'}] },
+  { id:'balakrishnan-noneq', title:'Elements of Non-Equilibrium Statistical Mechanics', author:'V. Balakrishnan', subject:'Statistical Mechanics', level:3,
+    blocks:[{id:'b1',label:'Ch. 3–4',title:'Probability & stochastic variables'},{id:'b2',label:'Ch. 5–6',title:'Stochastic processes & correlations'},{id:'b3',label:'Ch. 7–8',title:'Brownian motion & Langevin equation'},{id:'b4',label:'Ch. 9–10',title:'Fokker–Planck equation'},{id:'b5',label:'Ch. 11–12',title:'Fluctuation-dissipation theorem'}] },
+
+  // ── ATOMIC & PARTICLE PHYSICS ──
+  { id:'haken-atoms', title:'Physics of Atoms & Quanta', author:'H. Haken & H.C. Wolf', subject:'Atomic & Particle Physics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–5',title:'Hydrogen atom & early quantum theory'},{id:'b2',label:'Ch. 6–10',title:'Many-electron atoms & periodic table'},{id:'b3',label:'Ch. 11–15',title:'Molecular structure & spectra'},{id:'b4',label:'Ch. 16–20',title:'Solid state & nuclear physics basics'}] },
+  { id:'martin-particles', title:'Particle Physics', author:'B.R. Martin & G. Shaw', subject:'Atomic & Particle Physics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Quarks, leptons & interactions'},{id:'b2',label:'Ch. 4–6',title:'Symmetries & the Standard Model'},{id:'b3',label:'Ch. 7–9',title:'QCD, weak interaction & beyond'}] },
+
+  // ── ASTROPHYSICS ──
+  { id:'phillips-stars', title:'The Physics of Stars', author:'A.C. Phillips', subject:'Astrophysics', level:2,
+    blocks:[{id:'b1',label:'Ch. 2–3',title:'Stellar structure & energy transport'},{id:'b2',label:'Ch. 4',title:'Nuclear energy generation'},{id:'b3',label:'Ch. 5',title:'Stellar models'},{id:'b4',label:'Ch. 6–7',title:'Main sequence & stellar evolution'},{id:'b5',label:'Ch. 8',title:'Stellar endpoints'}] },
+  { id:'carroll-astrophysics', title:'An Introduction to Modern Astrophysics', author:'Carroll & Ostlie', subject:'Astrophysics', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–6',title:'Celestial mechanics & radiation'},{id:'b2',label:'Ch. 7–12',title:'Stellar interiors & atmospheres'},{id:'b3',label:'Ch. 13–18',title:'Stellar evolution & remnants'},{id:'b4',label:'Ch. 19–24',title:'Galaxies & cosmology'}] },
+
+  // ── CONDENSED MATTER ──
+  { id:'ashcroft-ss', title:'Solid State Physics', author:'Ashcroft & Mermin', subject:'Condensed Matter', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–5',title:'Drude & free electron models'},{id:'b2',label:'Ch. 6–11',title:'Crystal lattices & band structure'},{id:'b3',label:'Ch. 12–17',title:'Semiconductors & Fermi surfaces'},{id:'b4',label:'Ch. 18–23',title:'Phonons & optical properties'},{id:'b5',label:'Ch. 24–29',title:'Magnetism & superconductivity'}] },
+  { id:'phillips-advss', title:'Advanced Solid State Physics', author:'P. Phillips', subject:'Condensed Matter', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Strongly correlated electrons'},{id:'b2',label:'Ch. 4–6',title:'Mott insulators & magnetism'},{id:'b3',label:'Ch. 7–9',title:'Superconductivity & superfluidity'},{id:'b4',label:'Ch. 10–12',title:'Topological phases'}] },
+
+  // ── FLUID MECHANICS ──
+  { id:'landau-fluid', title:'Fluid Mechanics', author:'Landau & Lifshitz', subject:'Fluid Mechanics', level:3,
+    blocks:[{id:'b1',label:'Ch. 1',title:'Ideal fluids'},{id:'b2',label:'Ch. 2',title:'Viscous fluids & Navier–Stokes'},{id:'b3',label:'Ch. 3',title:'Turbulence'},{id:'b4',label:'Ch. 4',title:'Boundary layers'},{id:'b5',label:'Ch. 8',title:'Sound & shock waves'}] },
+
+  // ── GROUP THEORY ──
+  { id:'ramond-group', title:"Group Theory: A Physicist\u2019s Survey", author:'P. Ramond', subject:'Group Theory (Physics)', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Finite groups & representations'},{id:'b2',label:'Ch. 4–6',title:'Lie groups & Lie algebras'},{id:'b3',label:'Ch. 7–9',title:'SU(N), Lorentz & Poincaré groups'}] },
+
+  // ── GENERAL RELATIVITY ──
+  { id:'carroll-gr', title:'Spacetime & Geometry', author:'Sean Carroll', subject:'General Relativity', level:2,
+    blocks:[{id:'b1',label:'Ch. 1',title:'Special relativity & tensors'},{id:'b2',label:'Ch. 2–3',title:'Manifolds & curvature'},{id:'b3',label:'Ch. 4',title:'Einstein field equations'},{id:'b4',label:'Ch. 5–6',title:'Schwarzschild & Kerr solutions'},{id:'b5',label:'Ch. 8',title:'Gravitational waves'}] },
+  { id:'stewart-gr', title:'Advanced General Relativity', author:'J. Stewart', subject:'General Relativity', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Spinors & differential forms'},{id:'b2',label:'Ch. 3–4',title:'Cauchy problem & singularity theorems'},{id:'b3',label:'Ch. 5–6',title:'Asymptotic structure & radiation'}] },
+  { id:'mtw-gravitation', title:'Gravitation', author:'Misner, Thorne & Wheeler', subject:'General Relativity', level:3,
+    blocks:[{id:'b1',label:'Part I',title:'Spacetime physics'},{id:'b2',label:'Part II',title:'Physics in curved spacetime'},{id:'b3',label:'Part III',title:'The Einstein field equation'},{id:'b4',label:'Part IV',title:'Gravitation & the universe'},{id:'b5',label:'Part V',title:'Relativistic stars & black holes'}] },
+
+    
+  // ── NONLINEAR DYNAMICS & CHAOS ──
+  { id:'hilborn-chaos', title:'Chaos & Nonlinear Dynamics', author:'R. Hilborn', subject:'Nonlinear Dynamics & Chaos', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'Nonlinear dynamics & bifurcations'},{id:'b2',label:'Ch. 4–6',title:'Strange attractors & Lyapunov exponents'},{id:'b3',label:'Ch. 7–9',title:'Fractals & dimension'},{id:'b4',label:'Ch. 10–12',title:'Quantum chaos & applications'}] },
+
+  // ── QUANTUM INFORMATION ──
+  { id:'nielsen-qc', title:'Quantum Computation & Quantum Information', author:'Nielsen & Chuang', subject:'Quantum Information', level:3,
+    blocks:[{id:'b1',label:'Ch. 1–2',title:'Introduction & linear algebra'},{id:'b2',label:'Ch. 3–4',title:'Quantum circuits & algorithms'},{id:'b3',label:'Ch. 5–6',title:'Quantum Fourier transform & Shors algorithm'},{id:'b4',label:'Ch. 7–8',title:'Quantum noise & error correction'},{id:'b5',label:'Ch. 9–10',title:'Quantum information theory'}] },
+
+  // ── EXPERIMENTAL & APPLIED ──
+  { id:'worsnop-practical', title:'Advanced Practical Physics', author:'Worsnop & Flint', subject:'Experimental & Applied', level:1,
+    blocks:[{id:'b1',label:'Part 1',title:'Measurement & error analysis'},{id:'b2',label:'Part 2',title:'Classical experiments'},{id:'b3',label:'Part 3',title:'Modern physics experiments'}] },
+  { id:'dunlap-exp', title:'Experimental Physics', author:'R.A. Dunlap', subject:'Experimental & Applied', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Data analysis & statistics'},{id:'b2',label:'Ch. 5–8',title:'Electronics & instrumentation'},{id:'b3',label:'Ch. 9–12',title:'Nuclear & particle detection'}] },
+  { id:'horowitz-electronics', title:'The Art of Electronics', author:'P. Horowitz & W. Hill', subject:'Experimental & Applied', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–3',title:'DC circuits & transistors'},{id:'b2',label:'Ch. 4–6',title:'Amplifiers & feedback'},{id:'b3',label:'Ch. 7–9',title:'Oscillators & active filters'},{id:'b4',label:'Ch. 10–12',title:'Digital electronics'},{id:'b5',label:'Ch. 13–15',title:'Microcontrollers & data acquisition'}] },
+  { id:'leach-digital', title:'Digital Principles & Their Applications', author:'D.P. Leach & A. Paul', subject:'Experimental & Applied', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Number systems & Boolean algebra'},{id:'b2',label:'Ch. 5–8',title:'Combinational & sequential logic'},{id:'b3',label:'Ch. 9–12',title:'Memory, PLDs & digital systems'}] },
+  { id:'callister-materials', title:'Material Science & Engineering', author:'W.D. Callister', subject:'Experimental & Applied', level:1,
+    blocks:[{id:'b1',label:'Ch. 1–5',title:'Atomic structure & bonding'},{id:'b2',label:'Ch. 6–10',title:'Mechanical properties & defects'},{id:'b3',label:'Ch. 11–15',title:'Phase diagrams & transformation'},{id:'b4',label:'Ch. 16–20',title:'Electronic, optical & magnetic properties'}] },
+  { id:'poole-nano', title:'Introduction to Nanotechnology', author:'C.P. Poole', subject:'Experimental & Applied', level:2,
+    blocks:[{id:'b1',label:'Ch. 1–4',title:'Nanoscale physics & fabrication'},{id:'b2',label:'Ch. 5–8',title:'Nanostructures & properties'},{id:'b3',label:'Ch. 9–12',title:'Applications & devices'}] },
+  { id:'thijssen-comp', title:'Computational Physics', author:'J. Thijssen', subject:'Experimental & Applied', level:2,
+    blocks:[{id:'b1',label:'Ch. 2–3',title:'Molecular dynamics & Monte Carlo'},{id:'b2',label:'Ch. 4',title:'Schrödinger equation (numerical)'},{id:'b3',label:'Ch. 5–6',title:'Hartree–Fock & DFT'},{id:'b4',label:'Ch. 9–10',title:'Electrodynamics & diffusion (numerical)'}] },
+
+    // ── GAME THEORY ──
+  {
+  id: 'fudenberg-game',
+  title: 'Game Theory',
+  author: 'Fudenberg & Tirole',
+  subject: 'Mathematical Economics',  // or 'Other' if you prefer grouping
+  level: 2,
+  blocks: [
+    { id: 'b1', label: 'Part I', title: 'Static games' },
+    { id: 'b2', label: 'Part II', title: 'Dynamic games' },
+    { id: 'b3', label: 'Part III', title: 'Incomplete information' }
+  ]
+  },
+];
+
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let logs = {}; // { blockKey: { date, rating, note } }  blockKey = bookId::blockId
+let modalTarget = null;
+let modalRating = 0;
+
+function blockKey(bookId, blockId) { return bookId + '::' + blockId; }
+
+// ─── JSONBIN ─────────────────────────────────────────────────────────────────
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = label;
+}
+
+async function loadFromCloud() {
+  if (!JSONBIN_API_KEY || JSONBIN_API_KEY === 'YOUR_API_KEY') { setSyncStatus('err','no api key — go to Settings'); renderAll(); return; }
+  try {
+    setSyncStatus('loading', 'syncing...');
+    const r = await fetch(JSONBIN_URL_VAR + '/latest', { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+    const d = await r.json();
+    if (d.record && d.record.logs) { logs = d.record.logs; }
+    setSyncStatus('ok', 'synced');
+    renderAll();
+  } catch(e) { setSyncStatus('err', 'sync failed'); }
+}
+
+async function saveToCloud() {
+  if (JSONBIN_API_KEY === 'YOUR_API_KEY') return;
+  try {
+    setSyncStatus('loading', 'saving...');
+    await fetch(JSONBIN_URL_VAR, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify({ logs })
+    });
+    setSyncStatus('ok', 'saved · ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
+  } catch(e) { setSyncStatus('err', 'save failed'); }
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderBooks();
+  renderDiary();
+  renderStats();
+  updateSidebar();
+}
+
+function groupBy(arr, key) {
+  return arr.reduce((acc, item) => {
+    (acc[item[key]] = acc[item[key]] || []).push(item);
+    return acc;
+  }, {});
+}
+
+let editingBook = null;
+
+function renderBooks() {
+  const container = document.getElementById('books-container');
+  const grouped = groupBy(BOOKS, 'subject');
+  let html = '';
+  for (const [subject, books] of Object.entries(grouped)) {
+    const sorted = [...books].sort((a,b) => a.level - b.level);
+    html += `<div class="subject-group"><div class="subject-label">${subject}</div><div class="books-list">`;
+    for (const book of sorted) {
+      const total = book.blocks.length;
+      const done = book.blocks.filter(b => logs[blockKey(book.id, b.id)]).length;
+      const pct = total ? Math.round(done/total*100) : 0;
+      const isComplete = done === total && total > 0;
+      const isEditing = editingBook === book.id;
+      html += `
+        <div class="book-row${isComplete?' completed':''}" id="row-${book.id}">
+          <div class="book-header" onclick="toggleBook('${book.id}')">
+            <div class="book-meta">
+              <span class="book-title">${book.title}</span>
+              <span class="book-author">${book.author}</span>
+            </div>
+            <div class="book-right">
+              <div class="progress-track"><div class="progress-fill${isComplete?' done':''}" style="width:${pct}%"></div></div>
+              <span class="progress-text">${done}/${total}</span>
+              <span class="expand-icon">▾</span>
+            </div>
+          </div>
+          <div class="blocks-panel">
+            <div class="blocks-inner">
+              <div class="blocks-inner-header">
+                <span>Blocks</span>
+                <button class="btn-edit-toggle" onclick="toggleEditMode(event,'${book.id}')">${isEditing ? 'cancel editing' : 'edit blocks'}</button>
+              </div>
+              ${isEditing ? renderEditBlocks(book) : book.blocks.map(block => {
+                const key = blockKey(book.id, block.id);
+                const entry = logs[key];
+                const stars = entry && entry.rating ? '★'.repeat(entry.rating) + '☆'.repeat(5-entry.rating) : '';
+                return `
+                  <div class="block-item${entry?' done':''}" id="block-${book.id}-${block.id}">
+                    <div class="block-label"><strong>${block.label}</strong><span style="color:var(--text3);margin:0 6px">·</span>${block.title}${entry && stars ? ' <span style="color:var(--accent);font-size:11px;margin-left:6px">' + stars + '</span>' : ''}</div>
+                    <div class="block-date">${entry ? entry.date : ''}</div>
+                    <div class="block-actions">
+                      <button class="btn-note${entry && entry.note ? ' has-note' : ''}" onclick="openNote('${book.id}','${block.id}')" title="${entry && entry.note ? 'view/edit note' : 'add note'}">✎</button>
+                      <button class="btn-done" onclick="toggleBlock(event,'${book.id}','${block.id}')">${entry ? 'undo' : 'done'}</button>
+                    </div>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+    html += `</div></div>`;
+  }
+  container.innerHTML = html;
+  document.getElementById('books-count').textContent = BOOKS.length + ' books · ' + BOOKS.reduce((a,b)=>a+b.blocks.length,0) + ' blocks';
+  // keep open if was open
+  document.querySelectorAll('.book-row').forEach(row => {
+    const id = row.id.replace('row-','');
+    if (openBooks.has(id)) row.classList.add('open');
+  });
+}
+
+function renderEditBlocks(book) {
+  let html = book.blocks.map((block, i) => `
+    <div class="edit-block-row" id="edit-row-${book.id}-${i}">
+      <input type="text" placeholder="Ch. x–y" value="${block.label}" style="max-width:90px" data-field="label" data-book="${book.id}" data-idx="${i}" />
+      <input type="text" class="title-input" placeholder="Block title" value="${block.title}" data-field="title" data-book="${book.id}" data-idx="${i}" />
+      <button class="btn-rm-block" onclick="removeBlock(event,'${book.id}',${i})">✕</button>
+    </div>`).join('');
+  html += `<button class="btn-add-block" onclick="addBlock(event,'${book.id}')">+ add block</button>`;
+  html += `<div class="edit-mode-actions">
+    <button class="btn-edit-save" onclick="saveBlocks(event,'${book.id}')">save</button>
+    <button class="btn-edit-cancel" onclick="cancelEdit(event,'${book.id}')">cancel</button>
+  </div>`;
+  return html;
+}
+
+const openBooks = new Set();
+
+function toggleEditMode(e, bookId) {
+  e.stopPropagation();
+  editingBook = editingBook === bookId ? null : bookId;
+  renderBooks();
+  // ensure open
+  const row = document.getElementById('row-' + bookId);
+  if (row) row.classList.add('open');
+}
+
+function cancelEdit(e, bookId) {
+  e.stopPropagation();
+  editingBook = null;
+  renderBooks();
+  const row = document.getElementById('row-' + bookId);
+  if (row) row.classList.add('open');
+}
+
+function addBlock(e, bookId) {
+  e.stopPropagation();
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+  const n = book.blocks.length + 1;
+  book.blocks.push({ id: 'b' + n + '_' + Date.now(), label: '', title: '' });
+  editingBook = bookId;
+  renderBooks();
+  const row = document.getElementById('row-' + bookId);
+  if (row) row.classList.add('open');
+}
+
+function removeBlock(e, bookId, idx) {
+  e.stopPropagation();
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+  book.blocks.splice(idx, 1);
+  editingBook = bookId;
+  renderBooks();
+  const row = document.getElementById('row-' + bookId);
+  if (row) row.classList.add('open');
+}
+
+function saveBlocks(e, bookId) {
+  e.stopPropagation();
+  const book = BOOKS.find(b => b.id === bookId);
+  if (!book) return;
+  // read current input values
+  document.querySelectorAll(`[data-book="${bookId}"]`).forEach(input => {
+    const idx = parseInt(input.dataset.idx);
+    const field = input.dataset.field;
+    if (book.blocks[idx]) book.blocks[idx][field] = input.value.trim();
+  });
+  editingBook = null;
+  renderAll();
+  saveToCloud();
+}
+
+function renderDiary() {
+  const container = document.getElementById('diary-container');
+  const entries = Object.entries(logs)
+    .filter(([,v]) => v)
+    .map(([key, val]) => {
+      const [bookId, blockId] = key.split('::');
+      const book = BOOKS.find(b => b.id === bookId);
+      const block = book && book.blocks.find(b => b.id === blockId);
+      return { key, bookId, blockId, book, block, ...val };
+    })
+    .filter(e => e.book && e.block)
+    .sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (!entries.length) {
+    container.innerHTML = '<div class="diary-empty">Nothing logged yet. Finish a block and it&apos;ll appear here.</div>';
+    return;
+  }
+
+  container.innerHTML = entries.map(e => {
+    const d = new Date(e.date);
+    const day = d.getDate();
+    const mon = d.toLocaleString('default',{month:'short'});
+    const yr = d.getFullYear();
+    const stars = e.rating ? '★'.repeat(e.rating) + '<span style="color:var(--border2)">★</span>'.repeat(5-e.rating) : '';
+    return `
+      <div class="diary-entry">
+        <div class="diary-date">
+          <span class="day">${day}</span>
+          ${mon} ${yr}
+        </div>
+        <div class="diary-content">
+          <div class="diary-book">${e.book.title}</div>
+          <div class="diary-block">${e.block.label} · ${e.block.title} · ${e.book.author}</div>
+          ${stars ? `<div class="diary-stars"><div class="stars">${stars}</div></div>` : ''}
+          ${e.note ? `<div class="diary-note">${e.note}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  const container = document.getElementById('stats-container');
+  const totalBlocks = BOOKS.reduce((a,b) => a + b.blocks.length, 0);
+  const doneBlocks = Object.values(logs).filter(Boolean).length;
+  const startedBooks = BOOKS.filter(b => b.blocks.some(bl => logs[blockKey(b.id, bl.id)])).length;
+  const finishedBooks = BOOKS.filter(b => b.blocks.every(bl => logs[blockKey(b.id, bl.id)]) && b.blocks.length > 0).length;
+
+  const subjects = [...new Set(BOOKS.map(b => b.subject))];
+  const subjectStats = subjects.map(s => {
+    const books = BOOKS.filter(b => b.subject === s);
+    const total = books.reduce((a,b) => a + b.blocks.length, 0);
+    const done = books.reduce((a,b) => a + b.blocks.filter(bl => logs[blockKey(b.id, bl.id)]).length, 0);
+    return { s, total, done, pct: total ? Math.round(done/total*100) : 0 };
+  }).sort((a,b) => b.pct - a.pct);
+
+  container.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-val">${doneBlocks}</div><div class="stat-card-label">blocks done</div></div>
+      <div class="stat-card"><div class="stat-card-val">${totalBlocks}</div><div class="stat-card-label">total blocks</div></div>
+      <div class="stat-card"><div class="stat-card-val">${doneBlocks && totalBlocks ? Math.round(doneBlocks/totalBlocks*100) : 0}%</div><div class="stat-card-label">overall</div></div>
+      <div class="stat-card"><div class="stat-card-val">${startedBooks}</div><div class="stat-card-label">books started</div></div>
+      <div class="stat-card"><div class="stat-card-val">${finishedBooks}</div><div class="stat-card-label">books finished</div></div>
+      <div class="stat-card"><div class="stat-card-val">${BOOKS.length}</div><div class="stat-card-label">total books</div></div>
+    </div>
+    <div class="stats-section-label" style="margin-bottom:16px">by subject</div>
+    ${subjectStats.map(({s, total, done, pct}) => `
+      <div class="subject-bar">
+        <div class="subject-bar-label">${s}</div>
+        <div class="subject-bar-track"><div class="subject-bar-fill" style="width:${pct}%"></div></div>
+        <div class="subject-bar-pct">${done}/${total}</div>
+      </div>`).join('')}`;
+}
+
+function updateSidebar() {
+  const doneBlocks = Object.values(logs).filter(Boolean).length;
+  const startedBooks = BOOKS.filter(b => b.blocks.some(bl => logs[blockKey(b.id, bl.id)])).length;
+  const finishedBooks = BOOKS.filter(b => b.blocks.every(bl => logs[blockKey(b.id, bl.id)]) && b.blocks.length > 0).length;
+  document.getElementById('sb-blocks').textContent = doneBlocks;
+  document.getElementById('sb-started').textContent = startedBooks;
+  document.getElementById('sb-finished').textContent = finishedBooks;
+}
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+function toggleBook(id) {
+  const row = document.getElementById('row-' + id);
+  if (!row) return;
+  row.classList.toggle('open');
+  if (row.classList.contains('open')) openBooks.add(id);
+  else openBooks.delete(id);
+}
+
+function toggleBlock(e, bookId, blockId) {
+  e.stopPropagation();
+  const key = blockKey(bookId, blockId);
+  if (logs[key]) {
+    delete logs[key];
+    renderAll();
+    saveToCloud();
+  } else {
+    modalTarget = { bookId, blockId };
+    modalRating = 0;
+    const book = BOOKS.find(b => b.id === bookId);
+    const block = book && book.blocks.find(b => b.id === blockId);
+    document.getElementById('modal-title').textContent = book ? book.title : '';
+    document.getElementById('modal-sub').textContent = block ? block.label : '';
+    document.getElementById('modal-note').value = '';
+    updateModalStars(0);
+    document.getElementById('modal').classList.add('open');
+  }
+}
+
+function openNote(bookId, blockId) {
+  const key = blockKey(bookId, blockId);
+  const entry = logs[key];
+  const book = BOOKS.find(b => b.id === bookId);
+  const block = book && book.blocks.find(b => b.id === blockId);
+  modalTarget = { bookId, blockId, editOnly: true };
+  modalRating = entry ? (entry.rating || 0) : 0;
+  document.getElementById('modal-title').textContent = book ? book.title : '';
+  document.getElementById('modal-sub').textContent = block ? block.label : '';
+  document.getElementById('modal-note').value = entry ? (entry.note || '') : '';
+  updateModalStars(modalRating);
+  document.getElementById('modal').classList.add('open');
+}
+
+function updateModalStars(val) {
+  document.querySelectorAll('#modal-stars .star').forEach(s => {
+    s.classList.toggle('lit', parseInt(s.dataset.v) <= val);
+  });
+}
+
+document.querySelectorAll('#modal-stars .star').forEach(s => {
+  s.addEventListener('click', () => {
+    modalRating = parseInt(s.dataset.v);
+    updateModalStars(modalRating);
+  });
+});
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  modalTarget = null;
+}
+
+function saveLog() {
+  if (!modalTarget) return;
+  const key = blockKey(modalTarget.bookId, modalTarget.blockId);
+  const note = document.getElementById('modal-note').value.trim();
+  const existing = logs[key] || {};
+  logs[key] = {
+    date: existing.date || new Date().toISOString().split('T')[0],
+    rating: modalRating,
+    note: note
+  };
+  closeModal();
+  renderAll();
+  saveToCloud();
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+function saveSettings() {
+  const key = document.getElementById('setting-apikey').value.trim();
+  const bin = document.getElementById('setting-binid').value.trim();
+  if (!key || !bin) return;
+  JSONBIN_API_KEY = key;
+  JSONBIN_BIN_ID = bin;
+  JSONBIN_URL_VAR = `https://api.jsonbin.io/v3/b/${bin}`;
+  localStorage.setItem('bookd_apikey', key);
+  localStorage.setItem('bookd_binid', bin);
+  loadFromCloud();
+}
+
+function loadSettings() {
+  const key = localStorage.getItem('bookd_apikey');
+  const bin = localStorage.getItem('bookd_binid');
+  if (key) { JSONBIN_API_KEY = key; document.getElementById('setting-apikey').value = key; }
+  if (bin) { JSONBIN_BIN_ID = bin; document.getElementById('setting-binid').value = bin; JSONBIN_URL_VAR = `https://api.jsonbin.io/v3/b/${bin}`; }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", function() { loadSettings(); loadFromCloud(); });
+</script>
+</body>
+</html>
